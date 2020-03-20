@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <script type="module">
+        import { reactive, isReactive, toRaw, ref, isRef, computed, markNonReactive, shallowReactive } from '../src/index.js'
+
+        // Object
+        if (true) {
+            const original = { foo: 1 }
+            const observed = reactive(original)
+            console.log('Object')
+            console.log(`observed !== original: ${observed !== original}`)
+            console.log(`isReactive(observed).tobe(true): ${isReactive(observed)}`)
+            console.log(`isReactive(original).tobe(false): ${isReactive(original)}`)
+            // get
+            console.log(`observed.foo.toBe(1): ${observed.foo}`)
+            // has
+            console.log(`'foo' in observed).toBe(true): ${observed.hasOwnProperty('foo')}`)
+            // ownKeys
+            console.log(`Object.keys(observed).toEqual(['foo']): ${Object.keys(observed)}`)
+        }
+
+        // nested reactives
+        if (true) {
+            const original = {
+                nested: {
+                    foo: 1
+                },
+                array: [{ bar: 2 }]
+            }
+            const observed = reactive(original)
+            console.log('')
+            console.log('nested reactives')
+            console.log(`isReactive(observed.nested.toBe(true): ${isReactive(observed.nested)}`)
+            console.log(`isReactive(observed.array.toBe(true): ${isReactive(observed.array)}`)
+            console.log(`isReactive(observed.array[0].toBe(true): ${isReactive(observed.array[0])}`)
+        }
+
+        // observed value should proxy mutations to original (Object)
+        if (true) {
+            const original = { foo: 1 }
+            const observed = reactive(original)
+            // set
+            observed.bar = 1
+            console.log('')
+            console.log('observed value should proxy mutations to original (Object)')
+            console.log(`observed.bar.toBe(1): ${observed.bar}`)
+            console.log(`original.bar.toBe(1): ${original.bar}`)
+            // delete
+            delete observed.foo
+            console.log(`'foo' in observed.toBe(false): ${observed.hasOwnProperty('foo')}`)
+            console.log(`'foo' in original.toBe(false): ${original.hasOwnProperty('foo')}`)
+        }
+
+        // setting a property with an unobserved value should wrap with reactive
+        if (true) {
+            const observed = reactive({})
+            const raw = {}
+            observed.foo = raw
+            console.log('')
+            console.log('setting a property with an unobserved value should wrap with reactive')
+            console.log(`observed.foo.not.toBe(raw): ${observed.foo !== raw}`)
+            console.log(`isReactive(observed.foo).toBe(true): ${isReactive(observed.foo)}`)
+        }
+
+        // observing already observed value should return same Proxy
+        if (true) {
+            const original = { foo: 1 }
+            const observed = reactive(original)
+            const observed2 = reactive(observed)
+            console.log('')
+            console.log('observing already observed value should return same Proxy')
+            console.log(`observed2.toBe(observed): ${observed2 === observed}`)
+        }
+
+        // observing the same value multiple times should return same Proxy
+        if (true) {
+            const original = { foo: 1 }
+            const observed = reactive(original)
+            const observed2 = reactive(original)
+            console.log('')
+            console.log('observing the same value multiple times should return same Proxy')
+            console.log(`observed2.toBe(observed): ${observed2 === observed}`)
+        }
+
+        // should not pollute original object with Proxies
+        if (true) {
+            const original = { foo: 1 }
+            const original2 = { bar: 2 }
+            const observed = reactive(original)
+            const observed2 = reactive(original2)
+            observed.bar = observed2
+            console.log('')
+            console.log('should not pollute original object with Proxies')
+            console.log(`observed.bar.toBe(observed2): ${observed.bar === observed2}`)
+            console.log(`original.bar.toBe(original2): ${original.bar === original2}`)
+        }
+
+        // unwrap
+        if (true) {
+            const original = { foo: 1 }
+            const observed = reactive(original)
+            console.log('')
+            console.log('unwrap')
+            console.log(`toRaw(observed).toBe(original): ${toRaw(observed) === original}`)
+            console.log(`toRaw(original).toBe(original): ${toRaw(original) === original}`)
+        }
+
+        // should not unwrap Ref
+        if (true) {
+            const observedNumberRef = reactive(ref(1))
+            const observedObjectRef = reactive(ref({ foo: 1 }))
+            console.log('')
+            console.log('should not unwrap Ref')
+            console.log(`isRef(observedNumberRef).toBe(true): ${isRef(observedNumberRef)}`)
+            console.log(`isRef(observedObjectRef).toBe(true): ${isRef(observedObjectRef)}`)
+        }
+
+        // should unwrap computed refs
+        if (true) {
+            // readonly
+            const a = computed(() => 1)
+            // writable
+            const b = computed({
+                get: () => 1,
+                set: () => { }
+            })
+            const obj = reactive({ a, b })
+            // check type
+            obj.a + 1
+            obj.b + 1
+            console.log('')
+            console.log('should unwrap computed refs')
+            console.log(`typeof obj.a.toBe(number): ${typeof obj.a}`)
+            console.log(`typeof obj.b.toBe(number): ${typeof obj.b}`)
+        }
+
+        // non-observable values
+        if (true) {
+            console.log('')
+            console.log('non-observable values')
+            const assertValue = (value) => {
+                reactive(value)
+                // console.log(`value cannot be made reactive: ${String(value)}`)
+            }
+
+            // number
+            assertValue(1)
+            // string
+            assertValue('foo')
+            // boolean
+            assertValue(false)
+            // null
+            assertValue(null)
+            // undefined
+            assertValue(undefined)
+            // symbol
+            const s = Symbol()
+            assertValue(s)
+
+            // built-ins should work and return same value
+            const p = Promise.resolve()
+            console.log(`reactive(p).toBe(p): ${reactive(p) === p}`)
+            const r = new RegExp('')
+            console.log(`reactive(r).toBe(r): ${reactive(r) === r}`)
+            const d = new Date()
+            console.log(`reactive(d).toBe(d): ${reactive(d) === d}`)
+        }
+
+        // markNonReactive
+        if (true) {
+            const obj = reactive({
+                foo: { a: 1 },
+                bar: markNonReactive({ b: 2 })
+            })
+            console.log('')
+            console.log('markNonReactive')
+            console.log(`isReactive(obj.foo).toBe(true): ${isReactive(obj.foo)}`)
+            console.log(`isReactive(obj.bar).toBe(false): ${isReactive(obj.bar)}`)
+        }
+
+        // shallowReactive
+        if (true) {
+            const props = shallowReactive({ n: { foo: 1 } })
+            console.log('')
+            console.log('shallowReactive')
+            console.log(`isReactive(props.n).toBe(false): ${isReactive(props.n)}`)
+        }
+
+        // should keep reactive properties reactive
+        if (true) {
+            const props = shallowReactive({ n: reactive({ foo: 1 }) })
+            props.n = reactive({ foo: 2 })
+            console.log('')
+            console.log('should keep reactive properties reactive')
+            console.log(`isReactive(props.n)).toBe(true): ${isReactive(props.n)}`)
+        }
+    </script>
+</body>
+
+</html>

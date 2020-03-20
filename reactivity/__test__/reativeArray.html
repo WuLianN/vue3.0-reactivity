@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <script type="module">
+        import { reactive, isReactive, toRaw, ref, isRef, effect } from '../src/index.js'
+
+        // should make Array reactive
+        if (true) {
+            const original = [{ foo: 1 }]
+            const observed = reactive(original)
+
+            console.log('should make Array reactive')
+            console.log(`observed !== original: ${observed !== original}`)
+            console.log(`isReactive(observed).tobe(true): ${isReactive(observed)}`)
+            console.log(`isReactive(original).tobe(false): ${isReactive(original)}`)
+            console.log(`isReactive(observed[0]).toBe(true): ${isReactive(observed[0])}`)
+            // get
+            console.log(`observed[0].foo.toBe(1): ${observed[0].foo}`)
+            // has
+            console.log(`0 in observed.toBe(true): ${observed.hasOwnProperty('0')}`)
+            // ownKeys
+            console.log(`Object.keys(observed).toEqual(['0']): ${Object.keys(observed)}`)
+        }
+
+        // cloned reactive Array should point to observed values
+        if (true) {
+            const original = [{ foo: 1 }]
+            const observed = reactive(original)
+            const clone = observed.slice()
+
+            console.log('')
+            console.log('cloned reactive Array should point to observed values')
+            console.log(`isReactive(clone[0]).toBe(true): ${isReactive(clone[0])}`)
+            console.log(`clone[0] !== original[0]: ${clone[0] !== original[0]}`)
+            console.log(`clone[0] === observed[0]: ${clone[0] === observed[0]}`)
+
+        }
+
+        // observed value should proxy mutations to original (Array)
+        if (true) {
+            const original = [{ foo: 1 }, { bar: 2 }]
+            const observed = reactive(original)
+            // set
+            const value = { baz: 3 }
+            const reactiveValue = reactive(value)
+            observed[0] = value
+
+            console.log('')
+            console.log('observed value should proxy mutations to original (Array)')
+            console.log(`observed[0] === reactiveValue: ${observed[0] === reactiveValue}`)
+            console.log(`original[0] === value: ${original[0] === value}`)
+
+            // delete
+            delete observed[0]
+            console.log(`observed[0] === undefined: ${observed[0] === undefined}`)
+            console.log(`original[0] === undefined: ${original[0] === undefined}`)
+
+            // mutating methods
+            observed.push(value)
+            console.log(`observed[2] === reactiveValue: ${observed[2] === reactiveValue}`)
+            console.log(`original[2] === value: ${original[2] === value}`)
+        }
+
+        // Array identity methods should work with raw values
+        if (true) {
+            const raw = {}
+            const arr = reactive([{}, {}])
+            arr.push(raw)
+
+            console.log('')
+            console.log('Array identity methods should work with raw values')
+            console.log(`arr.indexOf(raw).toBe(2): ${arr.indexOf(raw)}`)
+            console.log(`arr.indexOf(raw, 3).toBe(-1): ${arr.indexOf(raw, 3)}`)
+            console.log(`arr.includes(raw).toBe(true): ${arr.includes(raw)}`)
+            console.log(`arr.includes(raw, 3).toBe(false): ${arr.includes(raw, 3)}`)
+            console.log(`arr.lastIndexOf(raw).toBe(2): ${arr.lastIndexOf(raw)}`)
+            console.log(`arr.lastIndexOf(raw, 1).toBe(-1): ${arr.lastIndexOf(raw, 1)}`)
+
+            // should work also for the observed version
+            const observed = arr[2]
+            console.log(`arr.indexOf(observed).toBe(2): ${arr.indexOf(observed)}`)
+            console.log(`arr.indexOf(observed, 3).toBe(-1): ${arr.indexOf(observed, 3)}`)
+            console.log(`arr.includes(observed).toBe(true): ${arr.includes(observed)}`)
+            console.log(`arr.includes(observed, 3).toBe(false): ${arr.includes(observed, 3)}`)
+            console.log(`arr.lastIndexOf(observed).toBe(2): ${arr.lastIndexOf(observed)}`)
+            console.log(`arr.lastIndexOf(observed, 1).toBe(-1): ${arr.lastIndexOf(observed, 1)}`)
+        }
+
+        // Array identity methods should work if raw value contains reactive objects
+        if (true) {
+            const raw = []
+            const obj = reactive({})
+            raw.push(obj)
+            const arr = reactive(raw)
+
+            console.log('')
+            console.log('Array identity methods should work if raw value contains reactive objects')
+            console.log(`arr.includes(obj).toBe(true): ${arr.includes(obj)}`)
+        }
+
+        // Array identity methods should be reactive
+        if (true) {
+            const obj = { identity: 'test' }
+            const arr = reactive([obj, {}])
+
+            let index = -1
+            effect(() => {
+                index = arr.indexOf(obj)
+            })
+
+            console.log('')
+            console.log('Array identity methods should be reactive')
+            console.log(`index === 0: ${index === 0}`)
+
+            arr.reverse()
+            console.log(`index === 1: ${index === 1}`)
+        }
+
+        // delete on Array should not trigger length dependency 
+        if (true) {
+            const arr = reactive([1, 2, 3])
+            let times = 0
+            const fn = () => {
+                times += 1
+            }
+
+            effect(() => {
+                fn(arr.length)
+            })
+            console.log('')
+            console.log('delete on Array should not trigger length dependency')
+            console.log(`fn被调用的次数为1：${times === 1}`)
+            delete arr[1]
+            console.log(`fn被调用的次数为1：${times === 1}`)
+        }
+
+        // Array methods w/ refs
+
+        //  read + copy
+        if (true) {
+            const original = reactive([1, ref(2)])
+            const res = original.concat([3, ref(4)])
+            const raw = toRaw(res)
+
+            console.log('')
+            console.log('read only copy methods')
+            console.log(`isRef(raw[1]).toBe(true): ${isRef(raw[1])}`)
+            console.log(`isRef(raw[3]).toBe(true): ${isRef(raw[3])}`)
+        }
+
+        // read + write
+        if (true) {
+            const original = reactive([1, ref(2)])
+            const res = original.copyWithin(0, 1, 2)
+            const raw = toRaw(res)
+
+            console.log('')
+            console.log('read + write mutating methods')
+            console.log(`isRef(raw[0]).toBe(true): ${isRef(raw[0])}`)
+            console.log(`isRef(raw[1]).toBe(true): ${isRef(raw[1])}`)
+        }
+
+        // read + indentity
+        if (true) {
+            const original = reactive([1, ref(2)])
+            const Ref = original[1]
+
+            console.log('')
+            console.log('read + indentity')
+            console.log(`ref === toRaw(original)[1]): ${Ref === toRaw(original)[1]}`)
+            console.log(`original.indexOf(ref).toBe(1): ${original.indexOf(Ref)}`)
+        }
+
+    </script>
+</body>
+
+</html>
