@@ -1,6 +1,6 @@
 ## vue-next reactivity 源码解析 
 
-:loudspeaker **快上车，没时间解释了**
+:loudspeaker: **快上车，没时间解释了**
 
 剔除ts，js描述，基础扎实，无压力。
 
